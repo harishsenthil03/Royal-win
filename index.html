@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Royal Win – Colour + Ladder Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{background:#020617;color:#fff;font-family:Arial;padding:10px}
+.container{max-width:650px;margin:auto}
+h2{text-align:center;color:#38bdf8;margin-bottom:10px}
+input,button{width:100%;padding:10px;margin:5px 0;border:none;border-radius:8px;font-size:16px}
+.red{background:#dc2626;color:#fff}
+.green{background:#16a34a;color:#fff}
+.violet{background:#7c3aed;color:#fff}
+.combo{background:#9333ea;color:#fff}
+.signal{padding:10px;text-align:center;border-radius:8px;font-size:18px;margin:5px 0}
+.wait{background:#334155}
+.buy-red{background:#dc2626}
+.buy-green{background:#16a34a}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+th,td{border:1px solid #334155;padding:5px;text-align:center}
+.win{color:#22c55e}
+.loss{color:#ef4444}
+.skip{color:#facc15}
+.stats{margin-top:8px;font-size:14px}
+.section-title{margin-top:10px;font-weight:bold;text-decoration:underline}
+.disabled{opacity:0.5;pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="container">
+<h2>🎯 Royal Win – Colour + Ladder Dashboard</h2>
+
+<input id="serialInputColour" type="number" placeholder="Starting Colour Serial">
+<input id="serialInputLadder" type="number" placeholder="Starting Ladder Serial">
+
+<div class="section-title">Colour Game</div>
+<button class="red" onclick="addColour('RED',false)">RED</button>
+<button class="green" onclick="addColour('GREEN',false)">GREEN</button>
+<button class="violet" onclick="addColour('VIOLET',true)">VIOLET</button>
+<button class="combo" onclick="addColour('RED',true)">RED + VIOLET</button>
+<button class="combo" onclick="addColour('GREEN',true)">GREEN + VIOLET</button>
+<div id="colourSignal" class="signal wait">WAIT</div>
+<div class="stats">Accuracy: <b id="colourAccuracy">0%</b> | Total Signals: <b id="colourTotal">0</b> | Wins: <b id="colourWins">0</b> | Losses: <b id="colourLosses">0</b></div>
+
+<div class="section-title">Ladder Game</div>
+<!-- Single taps -->
+<button class="red" onclick="addLadder('A')">A</button>
+<button class="green" onclick="addLadder('B')">B</button>
+<button class="violet" onclick="addLadder('C')">C</button>
+<button class="combo" onclick="addLadder('D')">D</button>
+<!-- Combos -->
+<button class="combo" onclick="addLadder('AC')">AC</button>
+<button class="combo" onclick="addLadder('BC')">BC</button>
+<button class="combo" onclick="addLadder('BD')">BD</button>
+<button class="combo" onclick="addLadder('AD')">AD</button>
+
+<div id="ladderSignal" class="signal wait">WAIT</div>
+<div class="stats">Total Ladder Bets: <b id="ladderTotal">0</b> | Wins: <b id="ladderWins">0</b> | Losses: <b id="ladderLosses">0</b></div>
+
+<table>
+<thead>
+<tr>
+<th>Colour Serial</th>
+<th>Colour Result</th>
+<th>Violet</th>
+<th>Colour Status</th>
+<th>Ladder Serial</th>
+<th>Ladder Result</th>
+<th>Ladder Status</th>
+<th>Skip Suggestion</th>
+</tr>
+</thead>
+<tbody id="history"></tbody>
+</table>
+</div>
+
+<script>
+let serialColour=0;
+let serialLadder=0;
+let historyData=[];
+let lastColourSignal=null;
+let colourTotal=0,colourWins=0,colourLosses=0;
+let ladderTotal=0,ladderWins=0,ladderLosses=0;
+let lastTwoLadder=[];
+
+// Colour Game
+function addColour(main,violet){
+  if(serialColour===0){
+    serialColour=parseInt(document.getElementById("serialInputColour").value);
+    if(!serialColour){alert("Enter starting Colour serial");return;}
+  }
+  serialColour++;
+
+  let status="SKIP";
+  if(lastColourSignal){
+    if(main==="VIOLET"){
+      status="SKIP";
+    }else if(main===lastColourSignal){
+      status="WIN"; colourWins++;
+    }else{
+      status="LOSS"; colourLosses++;
+    }
+    colourTotal++;
+    lastColourSignal=null;
+  }
+
+  historyData.push({
+    serialColour,
+    colour:main,
+    violet,
+    status,
+    serialLadder:null,
+    ladderResult:null,
+    ladderStatus:null,
+    skipSuggestion:false
+  });
+  generateColourSignal();
+  updateColourStats();
+  updateTable();
+}
+
+function generateColourSignal(){
+  let box=document.getElementById("colourSignal");
+  let lastTwo=historyData.slice(-2).map(x=>x.colour).filter(c=>c!=="VIOLET");
+  if(lastTwo.length<2 || lastTwo[0]!==lastTwo[1]){
+    box.innerHTML="WAIT";
+    box.className="signal wait";
+    lastColourSignal=null;
+    return;
+  }
+  lastColourSignal=lastTwo[0]==="RED"?"GREEN":"RED";
+  box.innerHTML="BUY "+lastColourSignal;
+  box.className="signal "+(lastColourSignal==="RED"?"buy-red":"buy-green");
+}
+
+function updateColourStats(){
+  let acc=colourTotal===0?0:Math.round((colourWins/colourTotal)*100);
+  document.getElementById("colourAccuracy").innerText=acc+"%";
+  document.getElementById("colourTotal").innerText=colourTotal;
+  document.getElementById("colourWins").innerText=colourWins;
+  document.getElementById("colourLosses").innerText=colourLosses;
+}
+
+// Ladder Game
+function addLadder(result){
+  if(serialLadder===0){
+    serialLadder=parseInt(document.getElementById("serialInputLadder").value);
+    if(!serialLadder){alert("Enter starting Ladder serial");return;}
+  }
+  serialLadder++;
+
+  ladderTotal++;
+
+  // Auto skip suggestion
+  lastTwoLadder.push(result);
+  if(lastTwoLadder.length>2) lastTwoLadder.shift();
+  let skip=false;
+  if(lastTwoLadder.length===2 && lastTwoLadder[0]===lastTwoLadder[1]){
+    skip=true;
+    document.getElementById("ladderSignal").innerHTML="WAIT (Auto Skip Suggested)";
+    document.getElementById("ladderSignal").className="signal wait";
+  } else {
+    document.getElementById("ladderSignal").innerHTML="BET OK";
+    document.getElementById("ladderSignal").className="signal buy-green";
+  }
+
+  // Manual input placeholder: prompt user for win/loss
+  let status=prompt("Enter Ladder result for "+result+" (WIN/LOSS)","WIN");
+  status=status.toUpperCase()==="WIN"?"WIN":"LOSS";
+  if(status==="WIN") ladderWins++; else ladderLosses++;
+
+  // Update last history entry or create new
+  let lastEntry=historyData[historyData.length-1];
+  if(lastEntry && lastEntry.ladderResult===null){
+    lastEntry.serialLadder=serialLadder;
+    lastEntry.ladderResult=result;
+    lastEntry.ladderStatus=status;
+    lastEntry.skipSuggestion=skip;
+  } else {
+    historyData.push({
+      serialColour:null,
+      colour:null,
+      violet:null,
+      status:null,
+      serialLadder,
+      ladderResult:result,
+      ladderStatus:status,
+      skipSuggestion:skip
+    });
+  }
+
+  updateLadderStats();
+  updateTable();
+}
+
+function updateLadderStats(){
+  document.getElementById("ladderTotal").innerText=ladderTotal;
+  document.getElementById("ladderWins").innerText=ladderWins;
+  document.getElementById("ladderLosses").innerText=ladderLosses;
+}
+
+function updateTable(){
+  let tbody=document.getElementById("history");
+  tbody.innerHTML="";
+  for(let i=historyData.length-1;i>=0;i--){
+    let r=historyData[i];
+    tbody.innerHTML+=`
+      <tr>
+        <td>${r.serialColour||"-"}</td>
+        <td>${r.colour||"-"}</td>
+        <td>${r.violet?"YES":"NO"}</td>
+        <td class="${r.status?r.status.toLowerCase():""}">${r.status||"-"}</td>
+        <td>${r.serialLadder||"-"}</td>
+        <td>${r.ladderResult||"-"}</td>
+        <td class="${r.ladderStatus?r.ladderStatus.toLowerCase():""}">${r.ladderStatus||"-"}</td>
+        <td>${r.skipSuggestion?"YES":"NO"}</td>
+      </tr>
+    `;
+  }
+}
+</script>
+</body>
+</html>
