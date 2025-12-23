@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Royal Win – Ladder Game Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{background:#020617;color:#fff;font-family:Arial;padding:10px}
+.container{max-width:600px;margin:auto}
+h2{text-align:center;color:#38bdf8;margin-bottom:10px}
+button{padding:10px;margin:5px;min-width:60px;border:none;border-radius:8px;font-size:16px;cursor:pointer}
+.red{background:#dc2626;color:#fff}
+.green{background:#16a34a;color:#fff}
+.violet{background:#7c3aed;color:#fff}
+.combo{background:#9333ea;color:#fff}
+.signal{padding:10px;text-align:center;border-radius:8px;font-size:18px;margin:5px 0}
+.wait{background:#334155}
+.stats{margin-top:8px;font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+th,td{border:1px solid #334155;padding:5px;text-align:center}
+.win{color:#22c55e}
+.loss{color:#ef4444}
+.skip{color:#facc15}
+.section-title{margin-top:10px;font-weight:bold;text-decoration:underline}
+input[type="text"]{padding:8px;border-radius:6px;border:none;width:100%;margin:5px 0;font-size:16px}
+</style>
+</head>
+<body>
+<div class="container">
+<h2>🎯 Royal Win – Ladder Game Tracker</h2>
+
+<input id="serialInputLadder" type="number" placeholder="Starting Ladder Serial">
+
+<div class="section-title">Bet Buttons</div>
+<button class="red" onclick="placeBet('A')">A</button>
+<button class="green" onclick="placeBet('B')">B</button>
+<button class="violet" onclick="placeBet('C')">C</button>
+<button class="combo" onclick="placeBet('D')">D</button>
+<button class="combo" onclick="placeBet('AC')">AC</button>
+<button class="combo" onclick="placeBet('BC')">BC</button>
+<button class="combo" onclick="placeBet('BD')">BD</button>
+<button class="combo" onclick="placeBet('AD')">AD</button>
+
+<div class="section-title">Actual Result Input</div>
+<input id="actualResult" type="text" placeholder="Enter actual result (A/B/C/D/AC/BC/BD/AD)">
+
+<div id="ladderSignal" class="signal wait">WAIT</div>
+<div class="stats">Total Bets: <b id="ladderTotal">0</b> | Wins: <b id="ladderWins">0</b> | Losses: <b id="ladderLosses">0</b></div>
+
+<table>
+<thead>
+<tr>
+<th>Serial</th>
+<th>Bet</th>
+<th>Actual Result</th>
+<th>Status</th>
+<th>Skip Suggestion</th>
+</tr>
+</thead>
+<tbody id="history"></tbody>
+</table>
+</div>
+
+<script>
+let serialLadder=0;
+let historyData=[];
+let ladderTotal=0,ladderWins=0,ladderLosses=0;
+let lastTwoLadder=[];
+
+// Place a bet
+function placeBet(bet){
+  if(serialLadder===0){
+    serialLadder=parseInt(document.getElementById("serialInputLadder").value);
+    if(!serialLadder){alert("Enter starting serial");return;}
+  }
+  serialLadder++;
+
+  // Get actual result
+  let actual=document.getElementById("actualResult").value.trim().toUpperCase();
+  if(!actual){alert("Enter actual result"); return;}
+
+  // Auto skip suggestion
+  lastTwoLadder.push(actual);
+  if(lastTwoLadder.length>2) lastTwoLadder.shift();
+  let skip=false;
+  if(lastTwoLadder.length===2 && lastTwoLadder[0]===lastTwoLadder[1]){
+    skip=true;
+    document.getElementById("ladderSignal").innerHTML="WAIT (Auto Skip Suggested)";
+    document.getElementById("ladderSignal").className="signal wait";
+  } else {
+    document.getElementById("ladderSignal").innerHTML="BET OK";
+    document.getElementById("ladderSignal").className="signal";
+  }
+
+  // Determine Win / Loss
+  let status=bet===actual ? "WIN":"LOSS";
+  if(status==="WIN") ladderWins++; else ladderLosses++;
+  ladderTotal++;
+
+  // Add to history
+  historyData.push({
+    serialLadder,
+    bet,
+    actual,
+    status,
+    skipSuggestion:skip
+  });
+
+  updateStats();
+  updateTable();
+
+  // Clear actual input for next round
+  document.getElementById("actualResult").value="";
+}
+
+function updateStats(){
+  document.getElementById("ladderTotal").innerText=ladderTotal;
+  document.getElementById("ladderWins").innerText=ladderWins;
+  document.getElementById("ladderLosses").innerText=ladderLosses;
+}
+
+function updateTable(){
+  let tbody=document.getElementById("history");
+  tbody.innerHTML="";
+  for(let i=historyData.length-1;i>=0;i--){
+    let r=historyData[i];
+    tbody.innerHTML+=`
+      <tr>
+        <td>${r.serialLadder}</td>
+        <td>${r.bet}</td>
+        <td>${r.actual}</td>
+        <td class="${r.status.toLowerCase()}">${r.status}</td>
+        <td>${r.skipSuggestion?"YES":"NO"}</td>
+      </tr>
+    `;
+  }
+}
+</script>
+</body>
+</html>
